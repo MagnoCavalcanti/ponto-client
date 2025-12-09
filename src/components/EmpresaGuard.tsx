@@ -15,7 +15,6 @@ export function EmpresaGuard({ children }: Props) {
     let vivo = true;
     (async () => {
       const ok = await verificarEmpresa(empresa!);
-      console.log(ok);
       
       if (vivo) {
         setExiste(ok);
