@@ -17,3 +17,18 @@ export const reqLogin = async (empresa: string, loginData: LoginRequest) => {
         throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
     }
 }
+
+export const reqVerifyToken = async (token: string): Promise<boolean> => {
+    try{
+        const response = await axiosSystem.get(
+            '/auth/verify-token', 
+            {
+                headers: { Authorization: `Bearer ${token}` },
+            }
+        );
+        return response.status === 200;
+    }catch(error: any){
+        // Trate o erro aqui, se necessário
+        return false;
+    }
+}
