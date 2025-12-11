@@ -1,9 +1,10 @@
 import { BrowserRouter, Route, Routes } from 'react-router'
 import './style/index.css'
 import Login from './pages/Login'
-import { EmpresaGuard } from './components/EmpresaGuard'
+import { EmpresaGuard } from './components/features/EmpresaGuard'
 import ErrorPage from './pages/ErrorPage'
-import ProtectedRoute from './components/ProtectedRoute'
+import ProtectedRoute from './components/features/ProtectedRoute'
+import Index from './pages/Index'
 
 
 function App() {
@@ -20,7 +21,7 @@ function App() {
           <Route path='/:empresa/dashboard' element={
             <EmpresaGuard>
               <ProtectedRoute>
-                <div>Home Page - Protected</div>
+                <Index/>
               </ProtectedRoute>
             </EmpresaGuard>
           } />
