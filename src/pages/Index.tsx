@@ -2,6 +2,7 @@ import { useLocation, useParams } from "react-router"
 import ErrorPage from "./ErrorPage"
 import Header from "@/components/layout/Header"
 import SideBar from "@/components/layout/SideBar"
+import Dashboard from "./Dashboard"
 
 
 const Index = () => {
@@ -12,9 +13,9 @@ const Index = () => {
     const renderPage = () => {
         switch(location.pathname){
             case `/${empresa}/dashboard`:
-                return <div>Dashboard Page</div>;
+                  return <Dashboard />;
 
-            default:
+              default:
                 return <ErrorPage/>//retirar depois, já que é redundante
         }
     }
