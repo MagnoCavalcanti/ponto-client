@@ -25,6 +25,34 @@ function App() {
               </ProtectedRoute>
             </EmpresaGuard>
           } />
+          <Route path='/:empresa/funcionarios' element={
+            <EmpresaGuard>
+              <ProtectedRoute>
+                <Index/>
+              </ProtectedRoute>
+            </EmpresaGuard>
+          } />
+          <Route path='/:empresa/registros' element={
+            <EmpresaGuard>
+              <ProtectedRoute>
+                <Index/>
+              </ProtectedRoute>
+            </EmpresaGuard>
+          } />
+          <Route path='/:empresa/dispositivos' element={
+            <EmpresaGuard>
+              <ProtectedRoute>
+                <Index/>
+              </ProtectedRoute>
+            </EmpresaGuard>
+          } />
+          <Route path='/:empresa/settings' element={
+            <EmpresaGuard>
+              <ProtectedRoute>
+                <Index/>
+              </ProtectedRoute>
+            </EmpresaGuard>
+          } />
           <Route path='/404' element={<ErrorPage/>} />
           <Route path='*' element={<ErrorPage/>} />
         </Routes>
