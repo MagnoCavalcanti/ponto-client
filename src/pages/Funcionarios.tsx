@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,65 +11,50 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Eye, FileDown, Plus, Search, SquarePen } from 'lucide-react';
-
-// Tipos
-interface Funcionario {
-  id: string;
-  nome: string;
-  email: string;
-  cargo: string;
-  departamento: string;
-  status: 'ativo' | 'inativo';
-  dataAdmissao: string;
-}
+import { getFuncionarios } from '@/services/funcionario';
+import type { FuncionarioResponse } from '@/types/response';
+import { formatarCPF } from '@/lib/utils';
 
 export default function Funcionarios() {
-  const [funcionarios] = useState<Funcionario[]>([
-    {
-      id: '1',
-      nome: 'João Silva',
-      email: 'joao.silva@empresa.com',
-      cargo: 'Desenvolvedor Senior',
-      departamento: 'Tecnologia',
-      status: 'ativo',
-      dataAdmissao: '2022-01-15',
-    },
-    {
-      id: '2',
-      nome: 'Maria Santos',
-      email: 'maria.santos@empresa.com',
-      cargo: 'Gerente de Projetos',
-      departamento: 'Gestão',
-      status: 'ativo',
-      dataAdmissao: '2021-03-10',
-    },
-    {
-      id: '3',
-      nome: 'Pedro Oliveira',
-      email: 'pedro.oliveira@empresa.com',
-      cargo: 'Designer UX',
-      departamento: 'Design',
-      status: 'ativo',
-      dataAdmissao: '2023-05-20',
-    },
-    {
-      id: '4',
-      nome: 'Ana Costa',
-      email: 'ana.costa@empresa.com',
-      cargo: 'Analista de RH',
-      departamento: 'Recursos Humanos',
-      status: 'inativo',
-      dataAdmissao: '2020-07-08',
-    },
-  ]);
-
+  const { empresa } = useParams();
+  const [funcionarios, setFuncionarios] = useState<FuncionarioResponse[]>([]);
   const [filtro, setFiltro] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const carregarFuncionarios = async () => {
+      if (!empresa) return;
+      
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setError('Token de autenticação não encontrado.');
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        setError(null);
+        const dados = await getFuncionarios(empresa, token);
+        setFuncionarios(dados);
+      } catch (err) {
+        console.error('Erro ao carregar funcionários:', err);
+        setError('Não foi possível carregar os funcionários. Tente novamente.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    carregarFuncionarios();
+  }, [empresa]);
 
   const funcionariosFiltrados = funcionarios.filter(
     (func) =>
       func.nome.toLowerCase().includes(filtro.toLowerCase()) ||
-      func.email.toLowerCase().includes(filtro.toLowerCase()) ||
-      func.cargo.toLowerCase().includes(filtro.toLowerCase())
+      func.cpf.toLowerCase().includes(filtro.toLowerCase()) ||
+      (func.cargo && func.cargo.toLowerCase().includes(filtro.toLowerCase())) ||
+      func.matricula.toString().includes(filtro)
   );
 
   return (
@@ -109,6 +95,21 @@ export default function Funcionarios() {
             </div>
           </CardHeader>
           <CardContent>
+            {/* Loading and Error States */}
+            {loading && (
+              <div className="text-center py-10">
+                <p className="text-gray-500">Carregando funcionários...</p>
+              </div>
+            )}
+            
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+                {error}
+              </div>
+            )}
+
+            {!loading && !error && (
+              <>
             {/* Search */}
             <div className="mb-6">
               <div className="relative">
@@ -129,11 +130,10 @@ export default function Funcionarios() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
-                    <TableHead>Email</TableHead>
+                    <TableHead>CPF</TableHead>
+                    <TableHead>Matrícula</TableHead>
                     <TableHead>Cargo</TableHead>
-                    <TableHead>Departamento</TableHead>
-                    <TableHead>Data de Admissão</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Grupo</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -141,7 +141,7 @@ export default function Funcionarios() {
                   {funcionariosFiltrados.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={6}
                         className="text-center py-10 text-gray-500"
                       >
                         Nenhum funcionário encontrado
@@ -164,31 +164,20 @@ export default function Funcionarios() {
                           </div>
                         </TableCell>
                         <TableCell className="text-gray-600">
-                          {funcionario.email}
+                          {formatarCPF(funcionario.cpf)}
                         </TableCell>
-                        <TableCell>{funcionario.cargo}</TableCell>
+                        <TableCell>{funcionario.matricula}</TableCell>
                         <TableCell>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                            {funcionario.departamento}
-                          </span>
+                          {funcionario.cargo || '-'}
                         </TableCell>
                         <TableCell>
-                          {new Date(
-                            funcionario.dataAdmissao
-                          ).toLocaleDateString('pt-BR')}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              funcionario.status === 'ativo'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {funcionario.status === 'ativo'
-                              ? 'Ativo'
-                              : 'Inativo'}
-                          </span>
+                          {funcionario.grupo ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              {funcionario.grupo}
+                            </span>
+                          ) : (
+                            '-'
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -206,6 +195,8 @@ export default function Funcionarios() {
                 </TableBody>
               </Table>
             </div>
+            </>
+            )}
           </CardContent>
         </Card>
       </div>
