@@ -8,4 +8,14 @@ interface FuncionarioResponse {
     cpf: string;
 }
 
-export type { FuncionarioResponse };
+interface DispositivoResponse {
+    id: number;
+    nome: string;
+    user: string;
+    password: string;
+    ip: string;
+    porta: number;
+    empresaId: number;
+}
+
+export type { FuncionarioResponse, DispositivoResponse };

@@ -1,6 +1,7 @@
 
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,81 +12,45 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Monitor, Wifi, WifiOff, MapPin, Calendar } from 'lucide-react';
-
-// Tipos
-interface Dispositivo {
-  id: string;
-  nome: string;
-  numeroSerie: string;
-  modelo: string;
-  localizacao: string;
-  status: 'online' | 'offline';
-  ultimaSincronizacao: string;
-  versaoFirmware: string;
-  ip: string;
-  registrosHoje: number;
-}
+import { Monitor, Wifi } from 'lucide-react';
+import { getDispositivos } from '@/services/dispositivos';
+import type { DispositivoResponse } from '@/types/response';
 
 const Dispositivos = () => {
-  const [dispositivos] = useState<Dispositivo[]>([
-    {
-      id: '1',
-      nome: 'REP - Entrada Principal',
-      numeroSerie: 'REP-2024-001',
-      modelo: 'REP Pro 3000',
-      localizacao: 'Recepção - 1º Andar',
-      status: 'online',
-      ultimaSincronizacao: '2024-12-19T10:30:00',
-      versaoFirmware: 'v2.5.1',
-      ip: '192.168.1.100',
-      registrosHoje: 45,
-    },
-    {
-      id: '2',
-      nome: 'REP - Departamento TI',
-      numeroSerie: 'REP-2024-002',
-      modelo: 'REP Pro 3000',
-      localizacao: 'TI - 2º Andar',
-      status: 'online',
-      ultimaSincronizacao: '2024-12-19T10:28:00',
-      versaoFirmware: 'v2.5.1',
-      ip: '192.168.1.101',
-      registrosHoje: 12,
-    },
-    {
-      id: '3',
-      nome: 'REP - Produção',
-      numeroSerie: 'REP-2024-003',
-      modelo: 'REP Pro 2500',
-      localizacao: 'Galpão - Térreo',
-      status: 'online',
-      ultimaSincronizacao: '2024-12-19T10:25:00',
-      versaoFirmware: 'v2.4.8',
-      ip: '192.168.1.102',
-      registrosHoje: 38,
-    },
-    {
-      id: '4',
-      nome: 'REP - RH',
-      numeroSerie: 'REP-2024-004',
-      modelo: 'REP Pro 3000',
-      localizacao: 'RH - 3º Andar',
-      status: 'offline',
-      ultimaSincronizacao: '2024-12-19T08:15:00',
-      versaoFirmware: 'v2.5.0',
-      ip: '192.168.1.103',
-      registrosHoje: 0,
-    },
-  ]);
-
+  const { empresa } = useParams();
+  const [dispositivos, setDispositivos] = useState<DispositivoResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dispositivoSelecionado, setDispositivoSelecionado] =
-    useState<Dispositivo | null>(null);
+    useState<DispositivoResponse | null>(null);
 
-  const formatarDataHora = (dataString: string) => {
-    const data = new Date(dataString);
-    return data.toLocaleString('pt-BR');
-  };
+  useEffect(() => {
+    const carregarDispositivos = async () => {
+      if (!empresa) return;
+      
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setError('Token de autenticação não encontrado.');
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        setError(null);
+        const dados = await getDispositivos(empresa, token);
+        setDispositivos(Array.isArray(dados) ? dados : []);
+      } catch (err) {
+        console.error('Erro ao carregar dispositivos:', err);
+        setError('Não foi possível carregar os dispositivos. Tente novamente.');
+        setDispositivos([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    carregarDispositivos();
+  }, [empresa]);
 
   return (
     <div className="h-screen bg-gray-50 p-6 overflow-hidden">
@@ -115,74 +80,73 @@ const Dispositivos = () => {
               </p>
             </CardHeader>
             <CardContent className="flex-1 overflow-hidden flex flex-col p-6">
+              {loading && (
+                <div className="text-center py-10">
+                  <p className="text-gray-500">Carregando dispositivos...</p>
+                </div>
+              )}
+              
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+                  {error}
+                </div>
+              )}
+
+              {!loading && !error && (
               <div className="rounded-md border flex-1 overflow-y-auto overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nome</TableHead>
-                      <TableHead>Modelo</TableHead>
-                      <TableHead>Localização</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Registros Hoje</TableHead>
+                      <TableHead>IP</TableHead>
+                      <TableHead>Porta</TableHead>
+                      <TableHead>Usuário</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {dispositivos.map((dispositivo) => (
-                      <TableRow
-                        key={dispositivo.id}
-                        onClick={() => setDispositivoSelecionado(dispositivo)}
-                        className={`cursor-pointer hover:bg-gray-50 ${
-                          dispositivoSelecionado?.id === dispositivo.id
-                            ? 'bg-blue-50'
-                            : ''
-                        }`}
-                      >
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-3">
-                            <Monitor className="h-8 w-8 text-blue-600" />
-                            <div>
-                              <div className="font-semibold">
-                                {dispositivo.nome}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {dispositivo.numeroSerie}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{dispositivo.modelo}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-gray-400" />
-                            {dispositivo.localizacao}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              dispositivo.status === 'online'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {dispositivo.status === 'online' ? (
-                              <Wifi className="h-3 w-3 mr-1" />
-                            ) : (
-                              <WifiOff className="h-3 w-3 mr-1" />
-                            )}
-                            {dispositivo.status === 'online'
-                              ? 'Online'
-                              : 'Offline'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center font-semibold">
-                          {dispositivo.registrosHoje}
+                    {dispositivos.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="text-center py-10 text-gray-500"
+                        >
+                          Nenhum dispositivo encontrado
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      dispositivos.map((dispositivo) => (
+                        <TableRow
+                          key={dispositivo.id}
+                          onClick={() => setDispositivoSelecionado(dispositivo)}
+                          className={`cursor-pointer hover:bg-gray-50 ${
+                            dispositivoSelecionado?.id === dispositivo.id
+                              ? 'bg-blue-50'
+                              : ''
+                          }`}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-3">
+                              <Monitor className="h-8 w-8 text-blue-600" />
+                              <div>
+                                <div className="font-semibold">
+                                  {dispositivo.nome}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  ID: {dispositivo.id}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono">{dispositivo.ip}</TableCell>
+                          <TableCell>{dispositivo.porta}</TableCell>
+                          <TableCell>{dispositivo.user}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
+              )}
             </CardContent>
           </Card>
 
@@ -201,26 +165,6 @@ const Dispositivos = () => {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Status Badge */}
-                  <div className="flex items-center justify-center">
-                    <span
-                      className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
-                        dispositivoSelecionado.status === 'online'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {dispositivoSelecionado.status === 'online' ? (
-                        <Wifi className="h-4 w-4 mr-2" />
-                      ) : (
-                        <WifiOff className="h-4 w-4 mr-2" />
-                      )}
-                      {dispositivoSelecionado.status === 'online'
-                        ? 'Online'
-                        : 'Offline'}
-                    </span>
-                  </div>
-
                   {/* Informações Gerais */}
                   <div>
                     <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
@@ -228,41 +172,30 @@ const Dispositivos = () => {
                     </h3>
                     <div className="space-y-3">
                       <div>
+                        <label className="text-xs text-gray-500">ID</label>
+                        <p className="font-medium">
+                          {dispositivoSelecionado.id}
+                        </p>
+                      </div>
+                      <div>
                         <label className="text-xs text-gray-500">Nome</label>
                         <p className="font-medium">
                           {dispositivoSelecionado.nome}
                         </p>
                       </div>
                       <div>
-                        <label className="text-xs text-gray-500">
-                          Número de Série
-                        </label>
-                        <p className="font-medium font-mono">
-                          {dispositivoSelecionado.numeroSerie}
-                        </p>
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-500">Modelo</label>
+                        <label className="text-xs text-gray-500">Usuário</label>
                         <p className="font-medium">
-                          {dispositivoSelecionado.modelo}
-                        </p>
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-500">
-                          Localização
-                        </label>
-                        <p className="font-medium flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-gray-400" />
-                          {dispositivoSelecionado.localizacao}
+                          {dispositivoSelecionado.user}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Informações Técnicas */}
+                  {/* Informações de Conexão */}
                   <div>
                     <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
-                      Informações Técnicas
+                      Configurações de Conexão
                     </h3>
                     <div className="space-y-3">
                       <div>
@@ -275,38 +208,18 @@ const Dispositivos = () => {
                       </div>
                       <div>
                         <label className="text-xs text-gray-500">
-                          Versão do Firmware
+                          Porta
                         </label>
                         <p className="font-medium">
-                          {dispositivoSelecionado.versaoFirmware}
+                          {dispositivoSelecionado.porta}
                         </p>
                       </div>
                       <div>
                         <label className="text-xs text-gray-500">
-                          Última Sincronização
+                          Senha
                         </label>
-                        <p className="font-medium flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          {formatarDataHora(
-                            dispositivoSelecionado.ultimaSincronizacao
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Estatísticas */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase mb-3">
-                      Estatísticas
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <label className="text-xs text-blue-600 font-medium">
-                          Registros Hoje
-                        </label>
-                        <p className="text-2xl font-bold text-blue-900">
-                          {dispositivoSelecionado.registrosHoje}
+                        <p className="font-medium font-mono text-gray-400">
+                          {dispositivoSelecionado.password ? '•'.repeat(dispositivoSelecionado.password.length) : '••••••'}
                         </p>
                       </div>
                     </div>
