@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Monitor, Wifi } from 'lucide-react';
+import { Monitor, Wifi   } from 'lucide-react';
 import { getDispositivos } from '@/services/dispositivos';
 import type { DispositivoResponse } from '@/types/response';
 
