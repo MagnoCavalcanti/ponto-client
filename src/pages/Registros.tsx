@@ -1,6 +1,6 @@
 
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,134 +18,54 @@ import {
   Calendar,
   Filter,
 } from 'lucide-react';
+import { useParams } from 'react-router';
+import { getRegistrosPorData } from '@/services/registros';
+import type { RegistroResponse } from '@/types/response';
 
-// Tipos
-interface Registro {
-  id: string;
-  funcionario: string;
-  data: string;
-  entrada: string;
-  saidaAlmoco: string;
-  retornoAlmoco: string;
-  saida: string;
-  totalHoras: string;
-  status: 'completo' | 'pendente' | 'falta';
-}
 
 const Registros = () => {
-  const [registros] = useState<Registro[]>([
-    {
-      id: '1',
-      funcionario: 'João Silva',
-      data: '2024-12-18',
-      entrada: '08:00',
-      saidaAlmoco: '12:00',
-      retornoAlmoco: '13:00',
-      saida: '17:00',
-      totalHoras: '8h 00min',
-      status: 'completo',
-    },
-    {
-      id: '2',
-      funcionario: 'Maria Santos',
-      data: '2024-12-18',
-      entrada: '08:15',
-      saidaAlmoco: '12:10',
-      retornoAlmoco: '13:05',
-      saida: '17:20',
-      totalHoras: '8h 10min',
-      status: 'completo',
-    },
-    {
-      id: '3',
-      funcionario: 'Pedro Oliveira',
-      data: '2024-12-18',
-      entrada: '08:30',
-      saidaAlmoco: '12:15',
-      retornoAlmoco: '13:10',
-      saida: '--:--',
-      totalHoras: '--',
-      status: 'pendente',
-    },
-    {
-      id: '4',
-      funcionario: 'Ana Costa',
-      data: '2024-12-18',
-      entrada: '--:--',
-      saidaAlmoco: '--:--',
-      retornoAlmoco: '--:--',
-      saida: '--:--',
-      totalHoras: '--',
-      status: 'falta',
-    },
-    {
-      id: '5',
-      funcionario: 'João Silva',
-      data: '2024-12-17',
-      entrada: '08:05',
-      saidaAlmoco: '12:00',
-      retornoAlmoco: '13:00',
-      saida: '17:10',
-      totalHoras: '8h 05min',
-      status: 'completo',
-    },
-    {
-      id: '6',
-      funcionario: 'Maria Santos',
-      data: '2024-12-17',
-      entrada: '08:00',
-      saidaAlmoco: '12:00',
-      retornoAlmoco: '13:00',
-      saida: '17:00',
-      totalHoras: '8h 00min',
-      status: 'completo',
-    },
-    {
-      id: '7',
-      funcionario: 'Pedro Oliveira',
-      data: '2024-12-17',
-      entrada: '08:20',
-      saidaAlmoco: '12:05',
-      retornoAlmoco: '13:00',
-      saida: '17:15',
-      totalHoras: '8h 00min',
-      status: 'completo',
-    },
-    {
-      id: '8',
-      funcionario: 'Ana Costa',
-      data: '2024-12-17',
-      entrada: '08:10',
-      saidaAlmoco: '12:00',
-      retornoAlmoco: '13:05',
-      saida: '17:05',
-      totalHoras: '7h 50min',
-      status: 'completo',
-    },
-  ]);
-
+  const { empresa } = useParams<{ empresa: string }>();
+  const [registros, setRegistros] = useState<RegistroResponse[]>([]);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 5;
-
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   // Cálculo da paginação
   const indiceInicio = (paginaAtual - 1) * itensPorPagina;
   const indiceFim = indiceInicio + itensPorPagina;
   const registrosPaginados = registros.slice(indiceInicio, indiceFim);
   const totalPaginas = Math.ceil(registros.length / itensPorPagina);
+  const [filtroData, setFiltroData] = useState(new Date().toISOString().split('T')[0]); // Data atual no formato YYYY-MM-DD
+  
 
-  const getStatusBadge = (status: string) => {
-    const badges = {
-      completo: 'bg-green-100 text-green-800',
-      pendente: 'bg-yellow-100 text-yellow-800',
-      falta: 'bg-red-100 text-red-800',
-    };
-    const labels = {
-      completo: 'Completo',
-      pendente: 'Pendente',
-      falta: 'Falta',
-    };
-    return { class: badges[status as keyof typeof badges], label: labels[status as keyof typeof labels] };
-  };
+
+  useEffect(() => {
+    const carregarRegistros = async () => {
+        if (!empresa) return;
+      
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+          setError('Token de autenticação não encontrado.');
+          setLoading(false);
+          return;
+        }
+
+        try {
+        setLoading(true);
+        setError(null);
+        const dados = await getRegistrosPorData(empresa, token, filtroData);
+        setRegistros(Array.isArray(dados) ? dados : []);
+        } catch (err) {
+          console.error('Erro ao carregar registros:', err);
+          setError('Não foi possível carregar os registros. Tente novamente.');
+          setRegistros([]);
+        } finally {
+          setLoading(false);
+        }
+    }
+    carregarRegistros();
+  }, [empresa, filtroData]);
+  
 
   return (
     <div className="h-screen bg-gray-50 p-6 overflow-hidden">
@@ -188,7 +108,8 @@ const Registros = () => {
                 <input
                   type="date"
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  defaultValue="2024-12-18"
+                  value={filtroData}
+                  onChange={(e) => setFiltroData(e.target.value)}
                 />
               </div>
               <Button variant="outline" className="shrink-0">
@@ -198,18 +119,27 @@ const Registros = () => {
             </div>
 
             {/* Table */}
-            <div className="rounded-md border flex-1 overflow-y-auto overflow-x-auto">
+            {loading && (
+                <div className="text-center py-10">
+                  <p className="text-gray-500">Carregando registros...</p>
+                </div>
+            )}
+              
+            {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+                  {error}
+                </div>
+            )}
+
+            {!loading && !error && 
+            (<div className="rounded-md border flex-1 overflow-y-auto overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Funcionário</TableHead>
                     <TableHead>Data</TableHead>
-                    <TableHead>Entrada</TableHead>
-                    <TableHead>Saída Almoço</TableHead>
-                    <TableHead>Retorno Almoço</TableHead>
-                    <TableHead>Saída</TableHead>
-                    <TableHead>Total de Horas</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Hora</TableHead>
+                    
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -224,9 +154,9 @@ const Registros = () => {
                     </TableRow>
                   ) : (
                     registrosPaginados.map((registro) => {
-                      const statusBadge = getStatusBadge(registro.status);
+                      
                       return (
-                        <TableRow key={registro.id}>
+                        <TableRow key={registro.nsr}>
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-3">
                               <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
@@ -243,27 +173,9 @@ const Registros = () => {
                           <TableCell>
                             {new Date(registro.data + 'T00:00:00').toLocaleDateString('pt-BR')}
                           </TableCell>
+                          
                           <TableCell className="font-mono">
-                            {registro.entrada}
-                          </TableCell>
-                          <TableCell className="font-mono">
-                            {registro.saidaAlmoco}
-                          </TableCell>
-                          <TableCell className="font-mono">
-                            {registro.retornoAlmoco}
-                          </TableCell>
-                          <TableCell className="font-mono">
-                            {registro.saida}
-                          </TableCell>
-                          <TableCell className="font-semibold">
-                            {registro.totalHoras}
-                          </TableCell>
-                          <TableCell>
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge.class}`}
-                            >
-                              {statusBadge.label}
-                            </span>
+                            {registro.hora}
                           </TableCell>
                         </TableRow>
                       );
@@ -271,7 +183,7 @@ const Registros = () => {
                   )}
                 </TableBody>
               </Table>
-            </div>
+            </div>)}
 
             {/* Paginação */}
             <div className="flex items-center justify-between mt-4 shrink-0">
