@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router';
+import { useParams, useNavigate } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +17,7 @@ import { formatarCPF } from '@/lib/utils';
 
 export default function Funcionarios() {
   const { empresa } = useParams();
+  const navigate = useNavigate();
   const [funcionarios, setFuncionarios] = useState<FuncionarioResponse[]>([]);
   const [filtro, setFiltro] = useState('');
   const [loading, setLoading] = useState(true);
@@ -181,7 +182,12 @@ export default function Funcionarios() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => navigate(`/${empresa}/funcionarios/${funcionario.id}/espelho-ponto`)}
+                              title="Ver espelho de ponto"
+                            >
                               <Eye></Eye>
                             </Button>
                             <Button variant="ghost" size="sm">
