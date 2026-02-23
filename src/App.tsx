@@ -46,6 +46,13 @@ function App() {
               </ProtectedRoute>
             </EmpresaGuard>
           } />
+          <Route path='/:empresa/funcionarios/:funcionarioId/espelho-ponto' element={
+            <EmpresaGuard>
+              <ProtectedRoute>
+                <Index/>
+              </ProtectedRoute>
+            </EmpresaGuard>
+          } />
           <Route path='/:empresa/settings' element={
             <EmpresaGuard>
               <ProtectedRoute>
