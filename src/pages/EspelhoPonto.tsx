@@ -43,12 +43,6 @@ export default function EspelhoPonto() {
   const [open, setOpen] = useState(false);
   const [diaSelecionado, setDiaSelecionado] = useState<RegistroAgrupado | null>(null);
 
-  // Filtros de período
-  const hoje = new Date();
-  const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-  const [dataInicio, setDataInicio] = useState(primeiroDiaMes.toISOString().split('T')[0]);
-  const [dataFim, setDataFim] = useState(hoje.toISOString().split('T')[0]);
-
   useEffect(() => {
     const carregarDados = async () => {
       if (!empresa || !funcionarioId) return;
@@ -82,9 +76,7 @@ export default function EspelhoPonto() {
         const registrosFuncionario = await getRegistrosPorFuncionario(
           empresa,
           token,
-          funcEncontrado.cpf,
-          dataInicio,
-          dataFim
+          funcEncontrado.cpf
         );
 
         setRegistros(registrosFuncionario);
@@ -98,7 +90,7 @@ export default function EspelhoPonto() {
     };
 
     carregarDados();
-  }, [empresa, funcionarioId, dataInicio, dataFim]);
+  }, [empresa, funcionarioId]);
 
   const agruparRegistrosPorData = (regs: RegistroResponse[]) => {
     const grupos: { [key: string]: RegistroResponse[] } = {};
@@ -303,38 +295,6 @@ export default function EspelhoPonto() {
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Filtros de Período */}
-                <div className="mb-6 flex flex-col md:flex-row gap-3">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Data Início
-                    </label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                      <input
-                        type="date"
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={dataInicio}
-                        onChange={(e) => setDataInicio(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Data Fim
-                    </label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                      <input
-                        type="date"
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={dataFim}
-                        onChange={(e) => setDataFim(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 {/* Tabela de Registros */}
                 <div className="rounded-md border overflow-auto max-h-96">
                   <Table>
