@@ -1,4 +1,5 @@
 import type { RegistroResponse } from "@/types/response";
+import type { RegistroRequest } from "@/types/requests";
 import axiosSystem from "./axios";
 
 const getRegistrosPorData = async (empresa: string, token: string, data: string): Promise<RegistroResponse[]> => {
@@ -32,4 +33,13 @@ const getRegistrosPorFuncionario = async (
     return response.data.registros;
 }
 
-export { getRegistrosPorData, getRegistrosPorFuncionario };
+const postRegistro = async (empresa: string, token: string, registro: RegistroRequest) => {
+    console.log(registro.hora);
+    
+    const response = await axiosSystem.post(`/${empresa}/ponto/registro`, registro, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+}
+
+export { getRegistrosPorData, getRegistrosPorFuncionario, postRegistro };

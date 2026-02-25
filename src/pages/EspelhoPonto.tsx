@@ -306,6 +306,7 @@ export default function EspelhoPonto() {
                         <TableHead>Saída</TableHead>
                         <TableHead>Horas Trabalhadas</TableHead>
                         <TableHead className="text-center">Detalhes</TableHead>
+                        <TableHead className='text-center'>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -364,6 +365,17 @@ export default function EspelhoPonto() {
                               <span className="text-sm text-gray-500">
                                 {dia.registros.length} registro(s)
                               </span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {dia.entrada && dia.saida ? (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  Completo 
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                  Incompleto
+                                </span>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))

@@ -4,4 +4,14 @@ interface LoginRequest {
     password: string;
 }
 
-export type { LoginRequest };
+interface RegistroRequest {
+    cpf_funcionario: string;
+    empresa_id: number;
+    relogio_id: number;
+    data: string;
+    hora: string;
+    tipo: 'E' | 'S';
+}
+
+
+export type { LoginRequest, RegistroRequest };
