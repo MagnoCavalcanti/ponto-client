@@ -18,14 +18,17 @@ interface DialogProps {
     open: boolean;
     setOpen: React.Dispatch<React.SetStateAction<boolean>>;
     dia: RegistroAgrupado | null;
+    onRegistroSalvo?: () => void;
 }
- 
-const DialogCustom: React.FC<DialogProps> = ({ open, setOpen, dia }) => {
+
+const DialogCustom: React.FC<DialogProps> = ({ open, setOpen, dia, onRegistroSalvo }) => {
     const [showAddForm, setShowAddForm] = useState<boolean>(false);
     const [novoRegistro, setNovoRegistro] = useState<{ hora: string; tipo: 'E' | 'S' }>({
         hora: '',
         tipo: 'E'
     });
+    const [errorOpen, setErrorOpen] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('Erro ao salvar o registro.');
     const { empresa } = useParams<{ empresa: string }>();
     const token = localStorage.getItem('accessToken') || '';
 
@@ -48,20 +51,37 @@ const DialogCustom: React.FC<DialogProps> = ({ open, setOpen, dia }) => {
     // Determina qual tipo de registro está faltando
     const registroFaltante = !dia.entrada ? 'E' : !dia.saida ? 'S' : null;
 
-    const handleAdicionarRegistro = () => {
-        // Limpa o formulário sem salvar em lugar nenhum
+    const handleAdicionarRegistro = async () => {
         if (!empresa || !token) return;
 
-        const date = new Date(`${dia.data}T${novoRegistro.hora}:00`).toISOString();
+        try {
+            // mantém o formato atual da hora
+            const horaISO = `${novoRegistro.hora}:00`;
+            
+            console.log(horaISO); // Debug: ex. "08:30:00"
+            
+            await postRegistro(empresa, token, { 
+                cpf_funcionario: dia.registros[0].cpf_funcionario, 
+                empresa_id: dia.registros[0].empresa_id, 
+                relogio_id: dia.registros[0].relogio_id, 
+                data: dia.data, 
+                hora: horaISO, 
+                tipo: novoRegistro.tipo 
+            });
 
-        const horaISO = date.split('T')[1].substring(0, 8); // Extrai apenas a parte da hora no formato HH:MM
-
-        postRegistro(empresa, token, { cpf_funcionario: dia.registros[0].cpf_funcionario, empresa_id: dia.registros[0].empresa_id, relogio_id: dia.registros[0].relogio_id, data: dia.data, hora: horaISO, tipo: novoRegistro.tipo });
-        setNovoRegistro({ hora: '', tipo: 'E' });
-        setShowAddForm(false);
+            setNovoRegistro({ hora: '', tipo: 'E' });
+            setShowAddForm(false);
+            setOpen(false);
+            onRegistroSalvo?.();
+        } catch (err) {
+            console.error('Erro ao salvar registro:', err);
+            setErrorMsg('Não foi possível salvar o registro. Tente novamente.');
+            setErrorOpen(true);
+        }
     };
 
     return (
+        <>
         <Dialog open={open} onClose={setOpen} className="relative z-50">
             <DialogBackdrop
                 transition
@@ -234,7 +254,29 @@ const DialogCustom: React.FC<DialogProps> = ({ open, setOpen, dia }) => {
                 </div>
             </div>
         </Dialog>
+
+        <Dialog open={errorOpen} onClose={setErrorOpen} className="relative z-50">
+            <DialogBackdrop className="fixed inset-0 bg-gray-900/50" />
+            <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div className="flex min-h-full items-center justify-center p-4">
+                    <DialogPanel className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+                        <DialogTitle className="text-lg font-semibold text-gray-900">Erro</DialogTitle>
+                        <p className="mt-2 text-sm text-gray-600">{errorMsg}</p>
+                        <div className="mt-4">
+                            <button
+                                onClick={() => setErrorOpen(false)}
+                                className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                            >
+                                Ok
+                            </button>
+                        </div>
+                    </DialogPanel>
+                </div>
+            </div>
+        </Dialog>
+    </>
     )
 }
+// ...existing code...
 
-export default DialogCustom
+export default DialogCustom;

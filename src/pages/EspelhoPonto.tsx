@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,54 +43,52 @@ export default function EspelhoPonto() {
   const [open, setOpen] = useState(false);
   const [diaSelecionado, setDiaSelecionado] = useState<RegistroAgrupado | null>(null);
 
-  useEffect(() => {
-    const carregarDados = async () => {
-      if (!empresa || !funcionarioId) return;
+  const carregarDados = useCallback(async () => {
+    if (!empresa || !funcionarioId) return;
 
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        setError('Token de autenticação não encontrado.');
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setError('Token de autenticação não encontrado.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const todosFuncionarios = await getFuncionarios(empresa, token);
+      const funcEncontrado = todosFuncionarios.find(
+        (f) => f.id.toString() === funcionarioId
+      );
+
+      if (!funcEncontrado) {
+        setError('Funcionário não encontrado.');
         setLoading(false);
         return;
       }
 
-      try {
-        setLoading(true);
-        setError(null);
+      setFuncionario(funcEncontrado);
 
-        // Buscar dados do funcionário
-        const todosFuncionarios = await getFuncionarios(empresa, token);
-        const funcEncontrado = todosFuncionarios.find(
-          (f) => f.id.toString() === funcionarioId
-        );
+      const registrosFuncionario = await getRegistrosPorFuncionario(
+        empresa,
+        token,
+        funcEncontrado.cpf
+      );
 
-        if (!funcEncontrado) {
-          setError('Funcionário não encontrado.');
-          setLoading(false);
-          return;
-        }
-
-        setFuncionario(funcEncontrado);
-
-        // Buscar registros do funcionário
-        const registrosFuncionario = await getRegistrosPorFuncionario(
-          empresa,
-          token,
-          funcEncontrado.cpf
-        );
-
-        setRegistros(registrosFuncionario);
-        agruparRegistrosPorData(registrosFuncionario);
-      } catch (err) {
-        console.error('Erro ao carregar dados:', err);
-        setError('Não foi possível carregar os dados. Tente novamente.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    carregarDados();
+      setRegistros(registrosFuncionario);
+      agruparRegistrosPorData(registrosFuncionario);
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err);
+      setError('Não foi possível carregar os dados. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   }, [empresa, funcionarioId]);
+
+  useEffect(() => {
+    carregarDados();
+  }, [carregarDados]);
 
   const agruparRegistrosPorData = (regs: RegistroResponse[]) => {
     const grupos: { [key: string]: RegistroResponse[] } = {};
@@ -118,7 +116,7 @@ export default function EspelhoPonto() {
           const minutosSaida = hS * 60 + mS;
           const diferencaMinutos = minutosSaida - minutosEntrada;
           const horas = Math.floor(diferencaMinutos / 60);
-          const minutos = diferencaMinutos % 60;
+          const minutos = diferencaMinutos % 66;
           horasTrabalhadas = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
         }
 
@@ -390,7 +388,7 @@ export default function EspelhoPonto() {
       </div>
 
       {/* Dialog Dinâmico */}
-      <DialogCustom open={open} setOpen={setOpen} dia={diaSelecionado} />
+      <DialogCustom open={open} setOpen={setOpen} dia={diaSelecionado} onRegistroSalvo={carregarDados} />
     </div>
   );
 }
